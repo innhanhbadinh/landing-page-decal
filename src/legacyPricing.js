@@ -193,7 +193,15 @@ function tinhSoTemTrenToIn(kichThuocNgang, kichThuocDoc, chieuRongGiayIn, chieuD
 // Có 3 mốc đường kính đặc biệt (3/5/6cm) lấy số cố định — giữ nguyên từ bản gốc.
 // applyTrim thay cho popup "Tem tròn được chọn?" trong bản Python (mặc định true).
 // ---------------------------------------------------------------------------
-function tinhTemTron(kichThuocNgang, chieuRongGiayIn, chieuDaiGiayIn, applyTrim = true) {
+// ---------------------------------------------------------------------------
+// Số tem TRÒN xếp được trên 1 tờ in (xếp kiểu tam giác đều/tổ ong).
+// Có 3 mốc đường kính đặc biệt (3/5/6cm) lấy số cố định — giữ nguyên từ bản gốc.
+// applyTrim thay cho popup "Tem tròn được chọn?" trong bản Python (mặc định false —
+// đã đối chiếu ngược với kết quả thật từ phần mềm gốc: tem tròn 30cm trên giấy
+// 32x43cm, 100 tem, Decal giấy Oji 32x43, Không cán, Không gia công → ra đúng
+// 435.000đ CHỈ KHI applyTrim=false. Bản trước đặt mặc định true là SAI, đã sửa).
+// ---------------------------------------------------------------------------
+function tinhTemTron(kichThuocNgang, chieuRongGiayIn, chieuDaiGiayIn, applyTrim = false) {
   const duongKinh = kichThuocNgang;
   const khoangCach = 0.1;
   const khoangCachX = duongKinh + khoangCach;
