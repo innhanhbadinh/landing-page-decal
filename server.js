@@ -8,6 +8,7 @@ const pricingRoutes = require('./src/routes/pricing');
 const pricingModule = require('./src/pricing');
 const legacyPricing = require('./src/routes/legacyPricing');
 const uploadRoutes = require('./src/routes/upload');
+const contentRoutes = require('./src/routes/content');
 const buildExcelUploadRouter = require('./src/routes/excelUpload');
 const { loadPricingData } = require('./src/legacyPricing');
 
@@ -43,6 +44,7 @@ async function main() {
   app.use('/api', pricingRoutes);       // /api/pricing, /api/pricing/estimate
   app.use('/api', legacyPricing.router); // /api/legacy/loai-giay, /api/legacy/tinh-gia
   app.use('/api', uploadRoutes);         // /api/upload (ảnh)
+  app.use('/api', contentRoutes);        // /api/content (toàn bộ nội dung admin)
   app.use('/api', buildExcelUploadRouter(applySheets)); // /api/legacy/upload-excel
 
   app.use((req, res) => res.status(404).json({ error: 'Not found' }));
