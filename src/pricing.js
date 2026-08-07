@@ -6,10 +6,16 @@ const { vlookup } = require('./legacyPricing');
 let legacySheets = null;
 function setLegacySheets(sheets) { legacySheets = sheets; }
 
-// Diện tích tờ giấy tham khảo (cm²) x hệ số hao hụt khi xếp hình lên tờ — dùng để
-// quy đổi "giá theo tờ" (tiered theo số tờ trong Excel gốc) thành "phụ phí mỗi tem"
-// cho công thức đơn giản, vốn không mô phỏng việc xếp tem lên tờ giấy thật.
+// Diện tích tờ giấy tham khảo (cm²) x hệ số hao hụt khi xếp hình lên tờ — dùng để ước lượng
+// số tem xếp được trên 1 tờ, từ đó suy ra số TỜ GIẤY cần in cho cả đơn hàng.
 const DIEN_TICH_TO_THAM_KHAO = 32 * 43 * 0.7;
+
+// Các chất liệu dùng bảng giá in "INGIAY" (giấy/kraft/fasson...); còn lại dùng "INDECAL" —
+// khớp đúng danh sách NHOM_GIAY_THUONG trong công thức chi tiết (legacyPricing.js).
+const NHOM_GIAY_THUONG = [
+  'Decal giấy Oji 32x40', 'Decal giấy Oji 32x43', 'Decal giấy Oji 32x45', 'Decal giấy Oji 33x45', 'Decal giấy Oji 33x48',
+  'Decal đế nhám', 'Decal Fasson', 'Decal Kraft'
+];
 
 // Quy tắc xác định nhóm sheet giá bế theo hình dạng + kích thước (đã xác nhận với người dùng):
 // - Cạnh nhỏ nhất < 2cm -> luôn BEKHO (bất kể hình gì)
@@ -20,22 +26,32 @@ function xacDinhNhomBe(shape, widthCm, heightCm) {
   return (shape && shape.nhomBe) || 'BETHUONG';
 }
 
-function tinhPhuPhiBeTuExcel(shape, widthCm, heightCm, qty) {
-  if (!legacySheets) return 0; // chưa nạp xong dữ liệu Excel — không tính phụ phí, tránh lỗi
-  const nhom = xacDinhNhomBe(shape, widthCm, heightCm);
-  const giaTheoTo = vlookup(legacySheets[nhom], qty);
-  const soTemUocLuong = Math.max(1, Math.floor(DIEN_TICH_TO_THAM_KHAO / (widthCm * heightCm)));
-  return giaTheoTo / soTemUocLuong;
+function uocLuongSoTemMoiTo(widthCm, heightCm) {
+  return Math.max(1, Math.floor(DIEN_TICH_TO_THAM_KHAO / (widthCm * heightCm)));
 }
 
-// Chi phí giấy — tra thẳng giá thật theo tên chất liệu trong sheet GIAYDECAL (giá flat/tờ,
-// không chia bậc số lượng), rồi quy đổi tương tự chi phí bế: chia cho số tem ước lượng
-// xếp được trên 1 tờ giấy tham khảo, ra phụ phí giấy mỗi tem.
-function tinhChiPhiGiayTuExcel(material, widthCm, heightCm) {
+// Tính TOÀN BỘ chi phí giấy + in + bế cho cả đơn hàng, rồi mới chia lại về giá mỗi tem —
+// QUAN TRỌNG: các bảng giá Excel (BETHUONG/KETP/BEKHO/INGIAY/INDECAL) chia bậc giá theo
+// SỐ TỜ GIẤY cần in, KHÔNG PHẢI theo số tem khách đặt — một đơn 500 tem tròn 5cm chỉ cần
+// ~11 tờ giấy, phải tính theo bậc giá của 11 tờ (đắt hơn nhiều), không phải bậc giá của "500".
+// Bản trước đây tra nhầm theo số tem trực tiếp nên ra giá thấp hơn thực tế 2-3 lần.
+function tinhChiPhiSheetBased(material, shape, widthCm, heightCm, qty) {
   if (!legacySheets || !material) return 0;
-  const giaTheoTo = vlookup(legacySheets.GIAYDECAL, 1, { tenDecal: material.excelLoaiGiay });
-  const soTemUocLuong = Math.max(1, Math.floor(DIEN_TICH_TO_THAM_KHAO / (widthCm * heightCm)));
-  return giaTheoTo / soTemUocLuong;
+
+  const soTemMoiTo = uocLuongSoTemMoiTo(widthCm, heightCm);
+  const soToGiayCanThiet = Math.max(1, Math.ceil(qty / soTemMoiTo));
+
+  const dungGiayThuong = NHOM_GIAY_THUONG.indexOf(material.excelLoaiGiay) !== -1;
+  const sheetIn = dungGiayThuong ? legacySheets.INGIAY : legacySheets.INDECAL;
+  const chiPhiIn = vlookup(sheetIn, soToGiayCanThiet * 2);
+
+  const nhomBe = xacDinhNhomBe(shape, widthCm, heightCm);
+  const chiPhiBe = vlookup(legacySheets[nhomBe], soToGiayCanThiet);
+
+  const chiPhiGiay = vlookup(legacySheets.GIAYDECAL, 1, { tenDecal: material.excelLoaiGiay });
+
+  const tongChiPhiSheetBased = (chiPhiIn * 2 + chiPhiBe + chiPhiGiay) * soToGiayCanThiet;
+  return tongChiPhiSheetBased / qty; // quy đổi về giá mỗi tem để khớp mô hình "đơn giá x số lượng" hiện tại
 }
 
 function getFullConfig() {
@@ -127,9 +143,8 @@ function estimate({ materialId, shapeId, sidesId, laminateId, rushId, width, hei
   const h = Math.max(parseFloat(height) || 0, 1);
   const q = Math.max(parseInt(qty, 10) || 1, 1);
 
-  const phuPhiBe = tinhPhuPhiBeTuExcel(shape, w, h, q);
-  const chiPhiGiay = tinhChiPhiGiayTuExcel(material, w, h);
-  const rawUnit = (chiPhiGiay + phuPhiBe) *
+  const unitFromSheets = tinhChiPhiSheetBased(material, shape, w, h, q);
+  const rawUnit = unitFromSheets *
     (sides ? sides.mult : 1) * (laminate ? laminate.mult : 1) * (rush ? rush.mult : 1);
   const unit = Math.max(rawUnit, cfg.floor);
   const subtotal = unit * q;
