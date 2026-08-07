@@ -146,17 +146,25 @@ function estimate({ materialId, shapeId, sidesId, laminateId, rushId, width, hei
   }
   const total = lamTronChanHangNghin(afterPromo - codeAmount);
 
+  // Đảm bảo "Đơn giá x Số lượng" hiển thị luôn trừ khớp chính xác với "Khuyến mãi" và
+  // "Thành tiền" — dùng floor (không phải round) để đơn giá x SL không bao giờ vượt quá
+  // subtotal đã làm tròn, rồi định nghĩa lại subtotal hiển thị = đúng đơn giá x SL đó.
+  const subtotalRounded = lamTronChanHangNghin(subtotal);
+  const displayUnit = Math.floor(subtotalRounded / q);
+  const displaySubtotal = displayUnit * q;
+  const displayPromo = Math.max(0, displaySubtotal - total);
+
   return {
     material: material ? material.title : null,
     shape: shape ? shape.label : null,
     quantity: q,
-    unit: Math.round(unit),
-    subtotal: Math.round(subtotal),
+    unit: displayUnit,
+    subtotal: displaySubtotal,
     promoRate,
-    promoAmount: Math.round(promoAmount),
+    promoAmount: displayPromo,
     codeApplied,
-    codeAmount: Math.round(codeAmount),
-    total: Math.round(total)
+    codeAmount: 0,
+    total
   };
 }
 
