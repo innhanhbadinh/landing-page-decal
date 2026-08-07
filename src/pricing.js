@@ -1,10 +1,38 @@
 const db = require('./db');
+const { vlookup } = require('./legacyPricing');
+
+// Sheets Excel (BETHUONG/KETP/BEKHO...) được server.js nạp 1 lần lúc khởi động
+// và inject vào đây qua setLegacySheets() — dùng chung với công thức tính giá chi tiết.
+let legacySheets = null;
+function setLegacySheets(sheets) { legacySheets = sheets; }
+
+// Diện tích tờ giấy tham khảo (cm²) x hệ số hao hụt khi xếp hình lên tờ — dùng để
+// quy đổi "giá theo tờ" (tiered theo số tờ trong Excel gốc) thành "phụ phí mỗi tem"
+// cho công thức đơn giản, vốn không mô phỏng việc xếp tem lên tờ giấy thật.
+const DIEN_TICH_TO_THAM_KHAO = 32 * 43 * 0.7;
+
+// Quy tắc xác định nhóm sheet giá bế theo hình dạng + kích thước (đã xác nhận với người dùng):
+// - Cạnh nhỏ nhất < 2cm -> luôn BEKHO (bất kể hình gì)
+// - Còn lại thì theo nhóm đã gán sẵn cho từng hình (nhom_be trong bảng shapes)
+function xacDinhNhomBe(shape, widthCm, heightCm) {
+  const minDim = Math.min(widthCm, heightCm);
+  if (minDim < 2) return 'BEKHO';
+  return (shape && shape.nhomBe) || 'BETHUONG';
+}
+
+function tinhPhuPhiBeTuExcel(shape, widthCm, heightCm, qty) {
+  if (!legacySheets) return 0; // chưa nạp xong dữ liệu Excel — không tính phụ phí, tránh lỗi
+  const nhom = xacDinhNhomBe(shape, widthCm, heightCm);
+  const giaTheoTo = vlookup(legacySheets[nhom], qty);
+  const soTemUocLuong = Math.max(1, Math.floor(DIEN_TICH_TO_THAM_KHAO / (widthCm * heightCm)));
+  return giaTheoTo / soTemUocLuong;
+}
 
 function getFullConfig() {
   const materials = db.prepare('SELECT * FROM materials ORDER BY sort_order, id').all()
     .map(m => ({ id: m.id, title: m.title, price: m.price, color: m.color, bullets: JSON.parse(m.bullets || '[]') }));
   const shapes = db.prepare('SELECT * FROM shapes ORDER BY sort_order, id').all()
-    .map(s => ({ id: s.id, label: s.label, surcharge: s.surcharge }));
+    .map(s => ({ id: s.id, label: s.label, nhomBe: s.nhom_be || 'BETHUONG' }));
   const sides = db.prepare('SELECT * FROM sides_options ORDER BY sort_order, id').all()
     .map(s => ({ id: s.id, label: s.label, mult: s.mult }));
   const laminate = db.prepare('SELECT * FROM laminate_options ORDER BY sort_order, id').all()
@@ -38,8 +66,8 @@ function replaceFullConfig(cfg) {
     const im = db.prepare('INSERT INTO materials (title, price, color, bullets, sort_order) VALUES (?,?,?,?,?)');
     (cfg.materials || []).forEach((m, i) => im.run(m.title || 'Chất liệu', m.price || 0, m.color || '#F3EEE4', JSON.stringify(m.bullets || []), i));
 
-    const isp = db.prepare('INSERT INTO shapes (label, surcharge, sort_order) VALUES (?,?,?)');
-    (cfg.shapes || []).forEach((s, i) => isp.run(s.label || 'Kiểu bế', s.surcharge || 0, i));
+    const isp = db.prepare('INSERT INTO shapes (label, surcharge, sort_order, nhom_be) VALUES (?,?,?,?)');
+    (cfg.shapes || []).forEach((s, i) => isp.run(s.label || 'Kiểu bế', 0, i, s.nhomBe || 'BETHUONG'));
 
     const isd = db.prepare('INSERT INTO sides_options (label, mult, sort_order) VALUES (?,?,?)');
     (cfg.sides || []).forEach((s, i) => isd.run(s.label || 'Lựa chọn', s.mult || 1, i));
@@ -86,7 +114,8 @@ function estimate({ materialId, shapeId, sidesId, laminateId, rushId, width, hei
   const q = Math.max(parseInt(qty, 10) || 1, 1);
 
   const area = w * h;
-  const rawUnit = (area * (material ? material.price : 0) + (shape ? shape.surcharge : 0)) *
+  const phuPhiBe = tinhPhuPhiBeTuExcel(shape, w, h, q);
+  const rawUnit = (area * (material ? material.price : 0) + phuPhiBe) *
     (sides ? sides.mult : 1) * (laminate ? laminate.mult : 1) * (rush ? rush.mult : 1);
   const unit = Math.max(rawUnit, cfg.floor);
   const subtotal = unit * q;
@@ -117,4 +146,4 @@ function estimate({ materialId, shapeId, sidesId, laminateId, rushId, width, hei
   };
 }
 
-module.exports = { getFullConfig, replaceFullConfig, estimate };
+module.exports = { getFullConfig, replaceFullConfig, estimate, setLegacySheets };
