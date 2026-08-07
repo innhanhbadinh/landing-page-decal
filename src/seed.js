@@ -9,14 +9,14 @@ function seedIfEmpty() {
     'INSERT INTO materials (title, price, color, bullets, sort_order) VALUES (?,?,?,?,?)'
   );
   const materials = [
-    ['Decal giấy', 0.8, '#F3EEE4', ['Giá tốt nhất trong các chất liệu', 'Hợp sản phẩm dùng một lần', 'Không khuyến khích nơi ẩm/nước']],
-    ['Decal nhựa PVC', 1.2, '#7FB8F2', ['Chống nước, chống rách', 'Bền khi dán ngoài trời', 'Bề mặt bóng, cao cấp hơn giấy']],
-    ['Decal trong', 1.4, '#D7E6F5', ['Nền trong suốt, thấy rõ sản phẩm', 'Hợp chai/lọ thuỷ tinh, nhựa trong', 'Không lộ viền trắng khi dán']],
-    ['Decal sữa', 1.3, '#F7F7F5', ['Nền trắng đục, che phủ tốt', 'Không bóng, chống chói sáng', 'Hợp mỹ phẩm, thực phẩm']],
-    ['Decal vỡ', 1.6, '#F0C9B0', ['Tự huỷ hoạ tiết khi bóc ra', 'Chống làm giả, chống tái sử dụng', 'Dùng cho tem bảo hành, niêm phong']],
-    ['Tem 7 màu chống giả', 3.0, '#B5179E', ['Đổi ánh màu theo góc nhìn', 'Khó sao chép, khó làm giả', 'Có thể đi kèm mã số tem']],
-    ['Decal chịu nhiệt', 1.5, '#FFB870', ['Chịu nhiệt độ cao, không bong', 'Không phai màu ngoài nắng', 'Hợp sản phẩm đóng gói nóng']],
-    ['Decal nhũ vàng/bạc', 2.2, '#D9A93B', ['Ánh kim sang trọng', 'Hợp nhãn mỹ phẩm, rượu, quà tặng', 'Ép nhũ thật, không phải in giả']]
+    ['Decal giấy', 15, '#F3EEE4', ['Giá tốt nhất trong các chất liệu', 'Hợp sản phẩm dùng một lần', 'Không khuyến khích nơi ẩm/nước']],
+    ['Decal nhựa PVC', 20, '#7FB8F2', ['Chống nước, chống rách', 'Bền khi dán ngoài trời', 'Bề mặt bóng, cao cấp hơn giấy']],
+    ['Decal trong', 18, '#D7E6F5', ['Nền trong suốt, thấy rõ sản phẩm', 'Hợp chai/lọ thuỷ tinh, nhựa trong', 'Không lộ viền trắng khi dán']],
+    ['Decal sữa', 17, '#F7F7F5', ['Nền trắng đục, che phủ tốt', 'Không bóng, chống chói sáng', 'Hợp mỹ phẩm, thực phẩm']],
+    ['Decal vỡ', 29, '#F0C9B0', ['Tự huỷ hoạ tiết khi bóc ra', 'Chống làm giả, chống tái sử dụng', 'Dùng cho tem bảo hành, niêm phong']],
+    ['Tem 7 màu chống giả', 21, '#B5179E', ['Đổi ánh màu theo góc nhìn', 'Khó sao chép, khó làm giả', 'Có thể đi kèm mã số tem']],
+    ['Decal chịu nhiệt', 19, '#FFB870', ['Chịu nhiệt độ cao, không bong', 'Không phai màu ngoài nắng', 'Hợp sản phẩm đóng gói nóng']],
+    ['Decal nhũ vàng/bạc', 22, '#D9A93B', ['Ánh kim sang trọng', 'Hợp nhãn mỹ phẩm, rượu, quà tặng', 'Ép nhũ thật, không phải in giả']]
   ];
   materials.forEach((m, i) => insertMaterial.run(m[0], m[1], m[2], JSON.stringify(m[3]), i));
 
@@ -37,7 +37,7 @@ function seedIfEmpty() {
   [[500, 0.05], [1000, 0.08], [5000, 0.12]].forEach((t, i) => insertTier.run(t[0], t[1], i));
 
   const insertSetting = db.prepare('INSERT INTO settings (key, value) VALUES (?,?)');
-  insertSetting.run('floor_price', '200');
+  insertSetting.run('floor_price', '100');
   insertSetting.run('promo_code', 'BADINH5');
   insertSetting.run('promo_code_rate', '0.05');
 
