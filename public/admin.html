@@ -387,11 +387,10 @@
     "qp.forEach(function(p){p.addEventListener('click',function(){q.value=p.dataset.qty;qp.forEach(function(x){x.classList.remove('active');});p.classList.add('active');updateEstimate();});});" +
     "ap.addEventListener('click',function(){appliedCode=pc.value.trim();updateEstimate();});" +
     "var gm=document.getElementById('galleryMain');document.querySelectorAll('.gallery-thumbs img').forEach(function(t){t.addEventListener('click',function(){document.querySelectorAll('.gallery-thumbs img').forEach(function(x){x.classList.remove('active');});t.classList.add('active');gm.src=t.dataset.full;});});" +
-    "if(!API_BASE){loadingEl.style.display='none';errorEl.textContent='Chưa cấu hình địa chỉ backend (API_BASE) — vào admin.html để nhập.';errorEl.style.display='block';fieldsEl.style.opacity='.3';}else{" +
     "fetch(API_BASE+'/api/pricing').then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(cfg){" +
-      "renderShapes(cfg.shapes);renderMaterials(cfg.materials);renderToggle(sidesGroup,'sides',cfg.sides);renderToggle(laminateGroup,'laminate',cfg.laminate);renderToggle(rushGroup,'rush',cfg.rush);" +
-      "loadingEl.style.display='none';fieldsEl.style.opacity='1';updateEstimate();" +
-    "}).catch(function(){loadingEl.style.display='none';errorEl.style.display='block';fieldsEl.style.opacity='.3';});}" +
+    "renderShapes(cfg.shapes);renderMaterials(cfg.materials);renderToggle(sidesGroup,'sides',cfg.sides);renderToggle(laminateGroup,'laminate',cfg.laminate);renderToggle(rushGroup,'rush',cfg.rush);" +
+    "loadingEl.style.display='none';fieldsEl.style.opacity='1';updateEstimate();" +
+    "}).catch(function(){loadingEl.style.display='none';errorEl.style.display='block';fieldsEl.style.opacity='.3';});" +
   "})();";
 
   /* ---------------- Preview + export ---------------- */
