@@ -102,6 +102,10 @@ function replaceFullConfig(cfg) {
   tx(cfg);
 }
 
+function lamTronChanHangNghin(so) {
+  return Math.ceil(so / 1000) * 1000;
+}
+
 function promoRateForQty(qty, tiers) {
   const sorted = [...tiers].sort((a, b) => b.minQty - a.minQty);
   for (const t of sorted) if (qty >= t.minQty) return t.rate;
@@ -140,7 +144,7 @@ function estimate({ materialId, shapeId, sidesId, laminateId, rushId, width, hei
     codeApplied = true;
     codeAmount = afterPromo * cfg.promoCode.rate;
   }
-  const total = afterPromo - codeAmount;
+  const total = lamTronChanHangNghin(afterPromo - codeAmount);
 
   return {
     material: material ? material.title : null,
