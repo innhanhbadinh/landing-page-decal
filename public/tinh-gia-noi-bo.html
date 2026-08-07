@@ -122,21 +122,22 @@
   const temTronCb = document.getElementById('temTron');
   const fieldDoc = document.getElementById('fieldDoc');
   const labelNgang = document.getElementById('labelNgang');
+  const errorBox = document.getElementById('errorBox');
+  const resultBox = document.getElementById('resultBox');
 
   fetch('/api/legacy/loai-giay').then(r => r.json()).then(list => {
     loaiGiaySel.innerHTML = list.map(g => '<option>' + g + '</option>').join('');
+    tinhGia(); // có danh sách giấy rồi thì tính luôn 1 lần với giá trị mặc định
   });
 
   temTronCb.addEventListener('change', () => {
     fieldDoc.style.display = temTronCb.checked ? 'none' : 'block';
     labelNgang.textContent = temTronCb.checked ? 'Đường kính (mm)' : 'Kích thước ngang (mm)';
+    tinhGia();
   });
 
-  document.getElementById('calcBtn').addEventListener('click', () => {
-    const errorBox = document.getElementById('errorBox');
-    const resultBox = document.getElementById('resultBox');
+  function tinhGia(){
     errorBox.innerHTML = '';
-
     const temTron = temTronCb.checked;
     const payload = {
       kichThuocNgangMm: parseFloat(document.getElementById('ngang').value) || 0,
@@ -169,6 +170,20 @@
         '<div class="total-row"><span>Tổng cộng</span><span class="v">' + fmt(data.chiPhiTongLamTron) + '</span></div>';
     })
     .catch(e => { errorBox.innerHTML = '<div class="error">Lỗi kết nối: ' + e.message + '</div>'; });
+  }
+
+  // Tự động tính lại mỗi khi đổi bất kỳ lựa chọn nào — không cần bấm nút nữa.
+  document.getElementById('calcBtn').addEventListener('click', tinhGia);
+  loaiGiaySel.addEventListener('change', tinhGia);
+  document.getElementById('loaiCan').addEventListener('change', tinhGia);
+  document.getElementById('loaiBe').addEventListener('change', tinhGia);
+
+  let debounceTimer;
+  ['ngang', 'doc', 'soLuongTem', 'soLuongToIn', 'loaiXen'].forEach((id) => {
+    document.getElementById(id).addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(tinhGia, 300);
+    });
   });
 })();
 </script>
