@@ -6,19 +6,22 @@ function seedIfEmpty() {
   if (materialCount > 0) return;
 
   const insertMaterial = db.prepare(
-    'INSERT INTO materials (title, price, color, bullets, sort_order) VALUES (?,?,?,?,?)'
+    'INSERT INTO materials (title, price, color, bullets, sort_order, excel_loai_giay) VALUES (?,?,?,?,?,?)'
   );
+  // excel_loai_giay = tên chất liệu THẬT khớp cột "Loại giấy" trong sheet GIAYDECAL.
+  // 2 dòng đánh dấu (*) không có chất liệu Excel tương ứng chính xác — đã chọn tạm chất
+  // liệu gần giống nhất, nên kiểm tra lại và đổi trong admin nếu chưa đúng thực tế.
   const materials = [
-    ['Decal giấy', 15, '#F3EEE4', ['Giá tốt nhất trong các chất liệu', 'Hợp sản phẩm dùng một lần', 'Không khuyến khích nơi ẩm/nước']],
-    ['Decal nhựa PVC', 20, '#7FB8F2', ['Chống nước, chống rách', 'Bền khi dán ngoài trời', 'Bề mặt bóng, cao cấp hơn giấy']],
-    ['Decal trong', 18, '#D7E6F5', ['Nền trong suốt, thấy rõ sản phẩm', 'Hợp chai/lọ thuỷ tinh, nhựa trong', 'Không lộ viền trắng khi dán']],
-    ['Decal sữa', 17, '#F7F7F5', ['Nền trắng đục, che phủ tốt', 'Không bóng, chống chói sáng', 'Hợp mỹ phẩm, thực phẩm']],
-    ['Decal vỡ', 29, '#F0C9B0', ['Tự huỷ hoạ tiết khi bóc ra', 'Chống làm giả, chống tái sử dụng', 'Dùng cho tem bảo hành, niêm phong']],
-    ['Tem 7 màu chống giả', 21, '#B5179E', ['Đổi ánh màu theo góc nhìn', 'Khó sao chép, khó làm giả', 'Có thể đi kèm mã số tem']],
-    ['Decal chịu nhiệt', 19, '#FFB870', ['Chịu nhiệt độ cao, không bong', 'Không phai màu ngoài nắng', 'Hợp sản phẩm đóng gói nóng']],
-    ['Decal nhũ vàng/bạc', 22, '#D9A93B', ['Ánh kim sang trọng', 'Hợp nhãn mỹ phẩm, rượu, quà tặng', 'Ép nhũ thật, không phải in giả']]
+    ['Decal giấy', 15, '#F3EEE4', ['Giá tốt nhất trong các chất liệu', 'Hợp sản phẩm dùng một lần', 'Không khuyến khích nơi ẩm/nước'], 'Decal giấy Oji 32x43'],
+    ['Decal nhựa PVC', 20, '#7FB8F2', ['Chống nước, chống rách', 'Bền khi dán ngoài trời', 'Bề mặt bóng, cao cấp hơn giấy'], 'Decal nhựa'],
+    ['Decal trong', 18, '#D7E6F5', ['Nền trong suốt, thấy rõ sản phẩm', 'Hợp chai/lọ thuỷ tinh, nhựa trong', 'Không lộ viền trắng khi dán'], 'Decal Trong'],
+    ['Decal sữa', 17, '#F7F7F5', ['Nền trắng đục, che phủ tốt', 'Không bóng, chống chói sáng', 'Hợp mỹ phẩm, thực phẩm'], 'Decal PP'], // (*) đoán tạm
+    ['Decal vỡ', 29, '#F0C9B0', ['Tự huỷ hoạ tiết khi bóc ra', 'Chống làm giả, chống tái sử dụng', 'Dùng cho tem bảo hành, niêm phong'], 'Vỡ dẻo'],
+    ['Tem 7 màu chống giả', 21, '#B5179E', ['Đổi ánh màu theo góc nhìn', 'Khó sao chép, khó làm giả', 'Có thể đi kèm mã số tem'], 'Decal 7 màu'],
+    ['Decal chịu nhiệt', 19, '#FFB870', ['Chịu nhiệt độ cao, không bong', 'Không phai màu ngoài nắng', 'Hợp sản phẩm đóng gói nóng'], 'Decal nhựa'], // (*) đoán tạm
+    ['Decal nhũ vàng/bạc', 22, '#D9A93B', ['Ánh kim sang trọng', 'Hợp nhãn mỹ phẩm, rượu, quà tặng', 'Ép nhũ thật, không phải in giả'], 'Gương vàng']
   ];
-  materials.forEach((m, i) => insertMaterial.run(m[0], m[1], m[2], JSON.stringify(m[3]), i));
+  materials.forEach((m, i) => insertMaterial.run(m[0], m[1], m[2], JSON.stringify(m[3]), i, m[4]));
 
   // nhóm sheet giá bế: BETHUONG (tròn/oval/bo góc), KETP (chữ nhật/vuông thường), BEKHO (hoa/khác)
   const insertShape = db.prepare('INSERT INTO shapes (label, surcharge, sort_order, nhom_be) VALUES (?,?,?,?)');
