@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tính giá in tem/decal — In Nhanh Ba Đình</title>
+<style>
+  :root{
+    --primary:#0D5FBE; --primary-light:#EAF2FD; --accent:#FF7A1A;
+    --ink:#16233D; --ink-soft:#5B6B84; --bg-soft:#F5F8FC; --border:#E4E9F0;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Inter',system-ui,sans-serif;background:var(--bg-soft);color:var(--ink);padding:32px 16px;}
+  .wrap{max-width:960px;margin:0 auto;}
+  h1{font-size:20px;margin:0 0 4px;}
+  .sub{color:var(--ink-soft);font-size:13.5px;margin:0 0 26px;}
+  .layout{display:grid;grid-template-columns:1.15fr 1fr;gap:24px;align-items:start;}
+  .card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:24px;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;}
+  .field select,.field input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13.5px;color:var(--ink);background:#fff;}
+  .field select:focus,.field input:focus{outline:none;border-color:var(--primary);}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .checkbox-row{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+  .checkbox-row input{width:auto;}
+  .checkbox-row label{font-size:13.5px;font-weight:500;margin:0;}
+  button{width:100%;padding:13px;border:0;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;font-size:14px;cursor:pointer;}
+  button:hover{opacity:.92;}
+  .result-card{position:sticky;top:24px;}
+  .row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:13.5px;}
+  .row:last-of-type{border-bottom:0;}
+  .row .v{font-weight:600;}
+  .total-row{margin-top:14px;padding-top:16px;border-top:2px solid var(--border);display:flex;justify-content:space-between;align-items:baseline;}
+  .total-row .v{font-size:26px;font-weight:800;color:var(--accent);}
+  .placeholder{color:var(--ink-soft);font-size:13px;text-align:center;padding:24px 0;}
+  .error{color:#E4572E;font-size:13px;background:#FDF3F0;border:1px solid #F3C9BB;border-radius:8px;padding:10px 12px;margin-top:12px;}
+  @media (max-width:760px){ .layout{grid-template-columns:1fr;} .result-card{position:static;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Tính giá in tem / decal</h1>
+  <p class="sub">Giao diện thử công thức tính giá thật — dữ liệu lấy trực tiếp từ bangtinh.xlsx</p>
+
+  <div class="layout">
+    <div class="card">
+      <div class="field">
+        <label>Loại giấy</label>
+        <select id="loaiGiay"></select>
+      </div>
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="temTron">
+        <label for="temTron">Tem tròn</label>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label id="labelNgang">Kích thước ngang (mm)</label>
+          <input type="number" id="ngang" value="30" min="1">
+        </div>
+        <div class="field" id="fieldDoc">
+          <label>Kích thước dọc (mm)</label>
+          <input type="number" id="doc" value="20" min="1">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Số lượng tem</label>
+          <input type="number" id="soLuongTem" value="200" min="0">
+        </div>
+        <div class="field">
+          <label>Số tờ in (bỏ trống = tự tính)</label>
+          <input type="number" id="soLuongToIn" value="0" min="0">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Loại cán</label>
+        <select id="loaiCan">
+          <option>Không cán</option>
+          <option>Cán nhiệt</option>
+          <option>Cán BK bóng</option>
+          <option>Cán BK mờ</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Loại bế</label>
+        <select id="loaiBe">
+          <option>Không gia công</option>
+          <option>Bế thường</option>
+          <option>Bế tem to</option>
+          <option>Bế khó&lt;1,5cm</option>
+          <option>Kẻ thành phẩm</option>
+          <option>Kẻ tem nhỏ 1,5cm</option>
+          <option>Kẻ tem vỡ&lt;1,5cm</option>
+          <option>Xén thành phẩm</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Tiền xén tự nhập (VNĐ)</label>
+        <input type="number" id="loaiXen" value="0" min="0">
+      </div>
+
+      <button id="calcBtn">Tính giá</button>
+      <div id="errorBox"></div>
+    </div>
+
+    <div class="card result-card">
+      <div id="resultBox"><p class="placeholder">Điền thông số rồi bấm "Tính giá" để xem kết quả.</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const fmt = (n) => Math.round(n).toLocaleString('vi-VN') + 'đ';
+  const loaiGiaySel = document.getElementById('loaiGiay');
+  const temTronCb = document.getElementById('temTron');
+  const fieldDoc = document.getElementById('fieldDoc');
+  const labelNgang = document.getElementById('labelNgang');
+
+  fetch('/api/legacy/loai-giay').then(r => r.json()).then(list => {
+    loaiGiaySel.innerHTML = list.map(g => '<option>' + g + '</option>').join('');
+  });
+
+  temTronCb.addEventListener('change', () => {
+    fieldDoc.style.display = temTronCb.checked ? 'none' : 'block';
+    labelNgang.textContent = temTronCb.checked ? 'Đường kính (mm)' : 'Kích thước ngang (mm)';
+  });
+
+  document.getElementById('calcBtn').addEventListener('click', () => {
+    const errorBox = document.getElementById('errorBox');
+    const resultBox = document.getElementById('resultBox');
+    errorBox.innerHTML = '';
+
+    const temTron = temTronCb.checked;
+    const payload = {
+      kichThuocNgangMm: parseFloat(document.getElementById('ngang').value) || 0,
+      kichThuocDocMm: temTron ? (parseFloat(document.getElementById('ngang').value) || 0) : (parseFloat(document.getElementById('doc').value) || 0),
+      soLuongTem: parseInt(document.getElementById('soLuongTem').value, 10) || 0,
+      soLuongToIn: parseInt(document.getElementById('soLuongToIn').value, 10) || 0,
+      loaiGiayChon: loaiGiaySel.value,
+      loaiCan: document.getElementById('loaiCan').value,
+      loaiBe: document.getElementById('loaiBe').value,
+      loaiXen: document.getElementById('loaiXen').value,
+      temTron
+    };
+
+    fetch('/api/legacy/tinh-gia', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    })
+    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+    .then(({ ok, data }) => {
+      if (!ok) { errorBox.innerHTML = '<div class="error">' + data.error + '</div>'; resultBox.innerHTML = '<p class="placeholder">Chưa tính được — sửa lỗi bên trái rồi thử lại.</p>'; return; }
+      resultBox.innerHTML =
+        '<div class="row"><span>Số tem / tờ giấy</span><span class="v">' + data.soTemTrenGiay.toLocaleString('vi-VN') + '</span></div>' +
+        '<div class="row"><span>Số tờ giấy cần</span><span class="v">' + data.soToGiayCanThiet.toLocaleString('vi-VN') + '</span></div>' +
+        '<div class="row"><span>Tiền in</span><span class="v">' + fmt(data.chiPhiIn * 2 * data.soToGiayCanThiet) + '</span></div>' +
+        '<div class="row"><span>Tiền giấy</span><span class="v">' + fmt(data.chiPhiGiay * data.soToGiayCanThiet) + '</span></div>' +
+        '<div class="row"><span>Tiền bế / kẻ</span><span class="v">' + fmt(data.chiPhiBe * data.soToGiayCanThiet) + '</span></div>' +
+        '<div class="row"><span>Tiền cán</span><span class="v">' + fmt(data.chiPhiCan) + '</span></div>' +
+        '<div class="row"><span>Tiền xén</span><span class="v">' + fmt(data.chiPhiXen) + '</span></div>' +
+        '<div class="total-row"><span>Tổng cộng</span><span class="v">' + fmt(data.chiPhiTongLamTron) + '</span></div>';
+    })
+    .catch(e => { errorBox.innerHTML = '<div class="error">Lỗi kết nối: ' + e.message + '</div>'; });
+  });
+})();
+</script>
+</body>
+</html>
