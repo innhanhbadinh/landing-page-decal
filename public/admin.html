@@ -75,7 +75,7 @@
   <span class="status" id="saveStatus">Sẵn sàng</span>
   <div class="actions">
     <button class="btn btn-ghost" id="resetBtn">Khôi phục mặc định</button>
-    <button class="btn" id="draftBtn">Lưu nháp</button>
+    <button class="btn" id="draftBtn">💾 Lưu nội dung</button>
     <button class="btn btn-primary" id="exportBtn">⬇ Xuất file HTML</button>
   </div>
 </div>
@@ -196,24 +196,46 @@
     }).join('');
   }
 
-  /* ---------------- Draft persistence (best-effort, artifact storage) ---------------- */
+  /* ---------------- Content persistence (server-based — hoạt động cả khi mở qua link deploy thật) ---------------- */
   function hasStorage(){ return typeof window.storage !== 'undefined' && window.storage; }
 
-  function saveDraft(){
-    if (!hasStorage()) return;
-    window.storage.set(STORAGE_KEY, JSON.stringify(content)).then(function(){
-      document.getElementById('saveStatus').textContent = 'Đã lưu nháp lúc ' + new Date().toLocaleTimeString('vi-VN');
-    }).catch(function(){ /* silent — draft saving is best-effort only */ });
+  // Lưu phần nội dung KHÔNG PHẢI giá (thương hiệu, hero, quy trình, lý do chọn, ảnh mẫu, CTA cuối)
+  // lên server. silent=true: không báo lỗi ồn ào (dùng cho auto-save mỗi lần gõ chữ, tránh làm phiền
+  // khi chưa nhập Admin Token). silent=false: báo rõ kết quả (dùng khi bấm nút lưu thủ công).
+  function saveContentToServer(silent){
+    var status = document.getElementById('saveStatus');
+    var base = (content.apiBase || '').replace(/\/$/, '');
+    if (!adminToken) {
+      if (!silent) status.textContent = 'Cần nhập Admin Token ở mục "Kết nối Backend" trước khi lưu.';
+      return;
+    }
+    var toSave = {
+      brand: content.brand, phone: content.phone, apiBase: content.apiBase,
+      hero: content.hero, process: content.process, why: content.why,
+      gallery: content.gallery, finalCta: content.finalCta, footerNote: content.footerNote
+    };
+    fetch(base + '/api/content', {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json', 'x-admin-token': adminToken},
+      body: JSON.stringify(toSave)
+    }).then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(){ status.textContent = 'Đã lưu lên server lúc ' + new Date().toLocaleTimeString('vi-VN'); })
+      .catch(function(e){ if (!silent) status.textContent = 'Lỗi lưu: ' + e.message; });
   }
 
-  function loadDraft(){
-    if (!hasStorage()){ renderAll(); return; }
-    window.storage.get(STORAGE_KEY).then(function(res){
-      if (res && res.value) {
-        try { content = JSON.parse(res.value); } catch(e){ content = defaultContent(); }
-      }
-      renderAll();
-    }).catch(function(){ renderAll(); });
+  // Tải nội dung đã lưu gần nhất từ server ngay khi mở trang — không cần Admin Token (chỉ đọc).
+  // Nếu không gọi được (mở file rời file://, hoặc server chưa có gì lưu), dùng mặc định, không
+  // chặn giao diện.
+  function loadContentFromServer(){
+    var base = (content.apiBase || '').replace(/\/$/, '');
+    fetch(base + '/api/content').then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(data){
+        var merged = defaultContent();
+        Object.keys(data || {}).forEach(function(k){ if (data[k] != null) merged[k] = data[k]; });
+        content = merged;
+        renderAll();
+      })
+      .catch(function(){ renderAll(); });
   }
 
   /* ---------------- Page template generator (also used for export) ---------------- */
@@ -404,7 +426,7 @@
       document.getElementById('previewFrame').srcdoc = renderPageHTML(content);
     }, 200);
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveDraft, 600);
+    saveTimer = setTimeout(function(){ saveContentToServer(true); }, 600);
   }
 
   function exportHTML(){
@@ -825,16 +847,15 @@
   /* ---------------- Toolbar actions ---------------- */
   document.getElementById('exportBtn').addEventListener('click', exportHTML);
   document.getElementById('draftBtn').addEventListener('click', function(){
-    if (!hasStorage()) { document.getElementById('saveStatus').textContent = 'Lưu nháp chỉ hoạt động khi mở trong Claude.'; return; }
-    saveDraft();
+    saveContentToServer(false);
   });
   document.getElementById('resetBtn').addEventListener('click', function(){
-    if (!confirm('Khôi phục toàn bộ nội dung về mặc định? Thao tác này sẽ mất các chỉnh sửa hiện tại.')) return;
+    if (!confirm('Khôi phục toàn bộ nội dung về mặc định? Thao tác này sẽ mất các chỉnh sửa hiện tại (kể cả bản đã lưu trên server, nếu sau đó bạn tiếp tục sửa và lưu lại).')) return;
     content = defaultContent();
     renderAll();
   });
 
-  loadDraft();
+  loadContentFromServer();
 })();
 </script>
 
