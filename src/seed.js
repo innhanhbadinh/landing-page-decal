@@ -20,9 +20,18 @@ function seedIfEmpty() {
   ];
   materials.forEach((m, i) => insertMaterial.run(m[0], m[1], m[2], JSON.stringify(m[3]), i));
 
-  const insertShape = db.prepare('INSERT INTO shapes (label, surcharge, sort_order) VALUES (?,?,?)');
-  [['Hình tròn', 0], ['Hình Oval', 0], ['Hình Vuông', 0], ['Vuông Bo góc', 10], ['Hình CN', 0], ['HCN Bo góc', 10], ['Hình hoa', 50], ['Hình khác', 80]]
-    .forEach((s, i) => insertShape.run(s[0], s[1], i));
+  // nhóm sheet giá bế: BETHUONG (tròn/oval/bo góc), KETP (chữ nhật/vuông thường), BEKHO (hoa/khác)
+  const insertShape = db.prepare('INSERT INTO shapes (label, surcharge, sort_order, nhom_be) VALUES (?,?,?,?)');
+  [
+    ['Hình tròn', 0, 'BETHUONG'],
+    ['Hình Oval', 0, 'BETHUONG'],
+    ['Hình Vuông', 0, 'KETP'],
+    ['Vuông Bo góc', 0, 'BETHUONG'],
+    ['Hình CN', 0, 'KETP'],
+    ['HCN Bo góc', 0, 'BETHUONG'],
+    ['Hình hoa', 0, 'BEKHO'],
+    ['Hình khác', 0, 'BEKHO']
+  ].forEach((s, i) => insertShape.run(s[0], s[1], i, s[2]));
 
   const insertSide = db.prepare('INSERT INTO sides_options (label, mult, sort_order) VALUES (?,?,?)');
   [['1 mặt', 1], ['2 mặt', 1.6]].forEach((s, i) => insertSide.run(s[0], s[1], i));
