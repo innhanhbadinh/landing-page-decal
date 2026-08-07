@@ -131,14 +131,14 @@
       pricing: {
         floor: 100,
         shapes: [
-          {label:"Hình tròn", surcharge:0},
-          {label:"Hình Oval", surcharge:0},
-          {label:"Hình Vuông", surcharge:0},
-          {label:"Vuông Bo góc", surcharge:10},
-          {label:"Hình CN", surcharge:0},
-          {label:"HCN Bo góc", surcharge:10},
-          {label:"Hình hoa", surcharge:50},
-          {label:"Hình khác", surcharge:80}
+          {label:"Hình tròn", nhomBe:"BETHUONG"},
+          {label:"Hình Oval", nhomBe:"BETHUONG"},
+          {label:"Hình Vuông", nhomBe:"KETP"},
+          {label:"Vuông Bo góc", nhomBe:"BETHUONG"},
+          {label:"Hình CN", nhomBe:"KETP"},
+          {label:"HCN Bo góc", nhomBe:"BETHUONG"},
+          {label:"Hình hoa", nhomBe:"BEKHO"},
+          {label:"Hình khác", nhomBe:"BEKHO"}
         ],
         sides: [
           {label:"1 mặt", mult:1},
@@ -156,7 +156,7 @@
         promoTiers: [
           {minQty:500, rate:0.05},
           {minQty:1000, rate:0.08},
-          {minQty:2000, rate:0.12}
+          {minQty:5000, rate:0.12}
         ],
         promoCode: {code:"BADINH5", rate:0.05}
       }
@@ -312,7 +312,7 @@
             '<div class="field"><label>Chất liệu</label><div class="material-pills" id="materialPills"></div></div>' +
             '<div class="field"><label>Loại màng</label><div class="toggle-group" id="laminateGroup"></div></div>' +
             '<div class="field"><label>Thời gian</label><div class="toggle-group" id="rushGroup"></div></div>' +
-            '<div class="field" style="margin-bottom:0;"><label>Số lượng</label><input type="number" id="qty" value="100" min="1" step="1"><div class="qty-presets"><span class="qty-preset" data-qty="100">100</span><span class="qty-preset active" data-qty="500">500</span><span class="qty-preset" data-qty="1000">1.000</span><span class="qty-preset" data-qty="5000">5.000</span></div></div>' +
+            '<div class="field" style="margin-bottom:0;"><label>Số lượng</label><input type="number" id="qty" value="500" min="1" step="1"><div class="qty-presets"><span class="qty-preset" data-qty="100">100</span><span class="qty-preset active" data-qty="500">500</span><span class="qty-preset" data-qty="1000">1.000</span><span class="qty-preset" data-qty="5000">5.000</span></div></div>' +
           '</div>' +
           '<p id="estimateLoading" style="font-size:12.5px;color:var(--ink-soft);">Đang tải cấu hình giá...</p>' +
           '<p id="estimateError" style="display:none;font-size:12.5px;color:#E4572E;">Không tải được cấu hình giá từ server — vui lòng gọi hotline để được báo giá trực tiếp.</p>' +
@@ -513,7 +513,7 @@
           content.materials = (data.materials || []).map(function(m){ return {title:m.title, price:m.price, color:m.color, bullets:m.bullets || []}; });
           content.pricing = {
             floor: data.floor,
-            shapes: (data.shapes || []).map(function(s){ return {label:s.label, surcharge:s.surcharge}; }),
+            shapes: (data.shapes || []).map(function(s){ return {label:s.label, nhomBe:s.nhomBe}; }),
             sides: (data.sides || []).map(function(s){ return {label:s.label, mult:s.mult}; }),
             laminate: (data.laminate || []).map(function(s){ return {label:s.label, mult:s.mult}; }),
             rush: (data.rush || []).map(function(s){ return {label:s.label, mult:s.mult}; }),
@@ -542,6 +542,29 @@
     c0.appendChild(btnRow);
     c0.appendChild(apiStatus);
     c0.appendChild(el('div', {class:'hint', text:'"Tải" sẽ ghi đè Chất liệu + Công thức tính giá đang chỉnh ở dưới bằng dữ liệu mới nhất từ server. "Lưu" đẩy Chất liệu + Công thức hiện tại lên server để trang landing page (đã trỏ đúng API Base URL) dùng ngay, không cần xuất file lại.'}));
+
+    var excelRow = el('div', {class:'f-row', style:'margin-top:16px;padding-top:16px;border-top:1px solid var(--border);'});
+    excelRow.appendChild(el('label', {text:'Cập nhật bảng giá Excel (bangtinh.xlsx)'}));
+    var excelFileInput = el('input', {type:'file', accept:'.xlsx'});
+    var excelStatus = el('div', {class:'upload-status'});
+    excelFileInput.addEventListener('change', function(){
+      var file = excelFileInput.files[0];
+      if (!file) return;
+      var base = (content.apiBase || '').replace(/\/$/, '');
+      if (!adminToken) { excelStatus.textContent = 'Cần nhập Admin Token ở trên trước.'; excelStatus.className = 'upload-status err'; return; }
+      excelStatus.textContent = 'Đang tải lên và nạp lại...'; excelStatus.className = 'upload-status';
+      var fd = new FormData();
+      fd.append('excel', file);
+      fetch(base + '/api/legacy/upload-excel', { method:'POST', headers:{'x-admin-token': adminToken}, body: fd })
+        .then(function(r){ return r.json().then(function(d){ if(!r.ok) throw new Error(d.error||('HTTP '+r.status)); return d; }); })
+        .then(function(d){ excelStatus.textContent = d.message || 'Đã cập nhật.'; excelStatus.className = 'upload-status ok'; excelFileInput.value=''; })
+        .catch(function(e){ excelStatus.textContent = 'Lỗi: ' + e.message; excelStatus.className = 'upload-status err'; });
+    });
+    excelRow.appendChild(excelFileInput);
+    excelRow.appendChild(excelStatus);
+    excelRow.appendChild(el('div', {class:'hint', text:'Tải lên file .xlsx đúng cấu trúc (các sheet INDECAL, INGIAY, GIAYDECAL, BETHUONG, BEKHO, KETP...) để cập nhật ngay lập tức cả trang tính giá nội bộ lẫn phụ phí bế trên landing page — không cần deploy lại code.'}));
+    c0.appendChild(excelRow);
+
     s0.appendChild(c0); panel.appendChild(s0);
 
     /* Thương hiệu */
@@ -704,7 +727,40 @@
       return box;
     }
 
-    c8.appendChild(renderNumberList('Kiểu bế', content.pricing.shapes, 'label', 'Tên kiểu bế', 'surcharge', 'Phụ phí (đ/tem)', 1, {label:'Kiểu mới', surcharge:0}));
+    function renderShapeList(list){
+      var box = el('div', {class:'f-row'});
+      box.appendChild(el('label', {text:'Kiểu bế'}));
+      box.appendChild(el('div', {class:'hint', text:'Mỗi kiểu bế thuộc 1 trong 3 nhóm giá bế thật (tra theo bậc số lượng từ file Excel): BETHUONG (bế thường — hình tròn/oval/bo góc), KETP (kẻ thành phẩm — chữ nhật/vuông thường), BEKHO (bế khó — hình phức tạp, hoặc tem có cạnh nhỏ hơn 2cm bất kể hình gì).'}));
+      list.forEach(function(item, i){
+        var card = el('div', {class:'item-card'});
+        var top = el('div', {class:'item-top'});
+        top.appendChild(el('span', {text:'Kiểu bế #' + (i+1)}));
+        var rm = el('button', {class:'item-remove', text:'Xoá'});
+        rm.addEventListener('click', function(){ list.splice(i,1); renderAll(); updatePreview(); });
+        top.appendChild(rm);
+        card.appendChild(top);
+        card.appendChild(fieldText('Tên kiểu bế', item.label, function(v){ item.label = v; }));
+        var selRow = el('div', {class:'f-row'});
+        selRow.appendChild(el('label', {text:'Nhóm giá bế'}));
+        var sel = el('select');
+        ['BETHUONG', 'KETP', 'BEKHO'].forEach(function(opt){
+          var o = el('option', {value: opt, text: opt});
+          if (item.nhomBe === opt) o.setAttribute('selected', 'true');
+          sel.appendChild(o);
+        });
+        sel.value = item.nhomBe || 'BETHUONG';
+        sel.addEventListener('change', function(){ item.nhomBe = sel.value; updatePreview(); });
+        selRow.appendChild(sel);
+        card.appendChild(selRow);
+        box.appendChild(card);
+      });
+      var addBtn = el('button', {class:'add-item-btn', text:'+ Thêm kiểu bế'});
+      addBtn.addEventListener('click', function(){ list.push({label:'Kiểu mới', nhomBe:'BETHUONG'}); renderAll(); updatePreview(); });
+      box.appendChild(addBtn);
+      return box;
+    }
+
+    c8.appendChild(renderShapeList(content.pricing.shapes));
     c8.appendChild(renderNumberList('Số mặt', content.pricing.sides, 'label', 'Tên lựa chọn', 'mult', 'Hệ số nhân (1 = không đổi)', 0.05, {label:'Lựa chọn mới', mult:1}));
     c8.appendChild(renderNumberList('Loại màng', content.pricing.laminate, 'label', 'Tên lựa chọn', 'mult', 'Hệ số nhân', 0.05, {label:'Lựa chọn mới', mult:1}));
     c8.appendChild(renderNumberList('Thời gian giao', content.pricing.rush, 'label', 'Tên lựa chọn', 'mult', 'Hệ số nhân', 0.05, {label:'Lựa chọn mới', mult:1}));
