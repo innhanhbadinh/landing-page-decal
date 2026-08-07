@@ -28,9 +28,19 @@ function tinhPhuPhiBeTuExcel(shape, widthCm, heightCm, qty) {
   return giaTheoTo / soTemUocLuong;
 }
 
+// Chi phí giấy — tra thẳng giá thật theo tên chất liệu trong sheet GIAYDECAL (giá flat/tờ,
+// không chia bậc số lượng), rồi quy đổi tương tự chi phí bế: chia cho số tem ước lượng
+// xếp được trên 1 tờ giấy tham khảo, ra phụ phí giấy mỗi tem.
+function tinhChiPhiGiayTuExcel(material, widthCm, heightCm) {
+  if (!legacySheets || !material) return 0;
+  const giaTheoTo = vlookup(legacySheets.GIAYDECAL, 1, { tenDecal: material.excelLoaiGiay });
+  const soTemUocLuong = Math.max(1, Math.floor(DIEN_TICH_TO_THAM_KHAO / (widthCm * heightCm)));
+  return giaTheoTo / soTemUocLuong;
+}
+
 function getFullConfig() {
   const materials = db.prepare('SELECT * FROM materials ORDER BY sort_order, id').all()
-    .map(m => ({ id: m.id, title: m.title, price: m.price, color: m.color, bullets: JSON.parse(m.bullets || '[]') }));
+    .map(m => ({ id: m.id, title: m.title, color: m.color, bullets: JSON.parse(m.bullets || '[]'), excelLoaiGiay: m.excel_loai_giay || 'Decal giấy Oji 32x43' }));
   const shapes = db.prepare('SELECT * FROM shapes ORDER BY sort_order, id').all()
     .map(s => ({ id: s.id, label: s.label, nhomBe: s.nhom_be || 'BETHUONG' }));
   const sides = db.prepare('SELECT * FROM sides_options ORDER BY sort_order, id').all()
@@ -63,8 +73,8 @@ function replaceFullConfig(cfg) {
     db.prepare('DELETE FROM rush_options').run();
     db.prepare('DELETE FROM promo_tiers').run();
 
-    const im = db.prepare('INSERT INTO materials (title, price, color, bullets, sort_order) VALUES (?,?,?,?,?)');
-    (cfg.materials || []).forEach((m, i) => im.run(m.title || 'Chất liệu', m.price || 0, m.color || '#F3EEE4', JSON.stringify(m.bullets || []), i));
+    const im = db.prepare('INSERT INTO materials (title, price, color, bullets, sort_order, excel_loai_giay) VALUES (?,?,?,?,?,?)');
+    (cfg.materials || []).forEach((m, i) => im.run(m.title || 'Chất liệu', 0, m.color || '#F3EEE4', JSON.stringify(m.bullets || []), i, m.excelLoaiGiay || 'Decal giấy Oji 32x43'));
 
     const isp = db.prepare('INSERT INTO shapes (label, surcharge, sort_order, nhom_be) VALUES (?,?,?,?)');
     (cfg.shapes || []).forEach((s, i) => isp.run(s.label || 'Kiểu bế', 0, i, s.nhomBe || 'BETHUONG'));
@@ -113,9 +123,9 @@ function estimate({ materialId, shapeId, sidesId, laminateId, rushId, width, hei
   const h = Math.max(parseFloat(height) || 0, 1);
   const q = Math.max(parseInt(qty, 10) || 1, 1);
 
-  const area = w * h;
   const phuPhiBe = tinhPhuPhiBeTuExcel(shape, w, h, q);
-  const rawUnit = (area * (material ? material.price : 0) + phuPhiBe) *
+  const chiPhiGiay = tinhChiPhiGiayTuExcel(material, w, h);
+  const rawUnit = (chiPhiGiay + phuPhiBe) *
     (sides ? sides.mult : 1) * (laminate ? laminate.mult : 1) * (rush ? rush.mult : 1);
   const unit = Math.max(rawUnit, cfg.floor);
   const subtotal = unit * q;
