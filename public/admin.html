@@ -103,14 +103,14 @@
         badge: "Từ 200đ / tem"
       },
       materials: [
-        {title:"Decal giấy", price:15, color:"#F3EEE4", bullets:["Giá tốt nhất trong các chất liệu","Hợp sản phẩm dùng một lần","Không khuyến khích nơi ẩm/nước"]},
-        {title:"Decal nhựa PVC", price:20, color:"#7FB8F2", bullets:["Chống nước, chống rách","Bền khi dán ngoài trời","Bề mặt bóng, cao cấp hơn giấy"]},
-        {title:"Decal trong", price:18, color:"#D7E6F5", bullets:["Nền trong suốt, thấy rõ sản phẩm","Hợp chai/lọ thuỷ tinh, nhựa trong","Không lộ viền trắng khi dán"]},
-        {title:"Decal sữa", price:17, color:"#F7F7F5", bullets:["Nền trắng đục, che phủ tốt","Không bóng, chống chói sáng","Hợp mỹ phẩm, thực phẩm"]},
-        {title:"Decal vỡ", price:29, color:"#F0C9B0", bullets:["Tự huỷ hoạ tiết khi bóc ra","Chống làm giả, chống tái sử dụng","Dùng cho tem bảo hành, niêm phong"]},
-        {title:"Tem 7 màu chống giả", price:21, color:"#B5179E", bullets:["Đổi ánh màu theo góc nhìn","Khó sao chép, khó làm giả","Có thể đi kèm mã số tem"]},
-        {title:"Decal chịu nhiệt", price:19, color:"#FFB870", bullets:["Chịu nhiệt độ cao, không bong","Không phai màu ngoài nắng","Hợp sản phẩm đóng gói nóng"]},
-        {title:"Decal nhũ vàng/bạc", price:22, color:"#D9A93B", bullets:["Ánh kim sang trọng","Hợp nhãn mỹ phẩm, rượu, quà tặng","Ép nhũ thật, không phải in giả"]}
+        {title:"Decal giấy", excelLoaiGiay:"Decal giấy Oji 32x43", color:"#F3EEE4", bullets:["Giá tốt nhất trong các chất liệu","Hợp sản phẩm dùng một lần","Không khuyến khích nơi ẩm/nước"]},
+        {title:"Decal nhựa PVC", excelLoaiGiay:"Decal nhựa", color:"#7FB8F2", bullets:["Chống nước, chống rách","Bền khi dán ngoài trời","Bề mặt bóng, cao cấp hơn giấy"]},
+        {title:"Decal trong", excelLoaiGiay:"Decal Trong", color:"#D7E6F5", bullets:["Nền trong suốt, thấy rõ sản phẩm","Hợp chai/lọ thuỷ tinh, nhựa trong","Không lộ viền trắng khi dán"]},
+        {title:"Decal sữa", excelLoaiGiay:"Decal PP", color:"#F7F7F5", bullets:["Nền trắng đục, che phủ tốt","Không bóng, chống chói sáng","Hợp mỹ phẩm, thực phẩm"]},
+        {title:"Decal vỡ", excelLoaiGiay:"Vỡ dẻo", color:"#F0C9B0", bullets:["Tự huỷ hoạ tiết khi bóc ra","Chống làm giả, chống tái sử dụng","Dùng cho tem bảo hành, niêm phong"]},
+        {title:"Tem 7 màu chống giả", excelLoaiGiay:"Decal 7 màu", color:"#B5179E", bullets:["Đổi ánh màu theo góc nhìn","Khó sao chép, khó làm giả","Có thể đi kèm mã số tem"]},
+        {title:"Decal chịu nhiệt", excelLoaiGiay:"Decal nhựa", color:"#FFB870", bullets:["Chịu nhiệt độ cao, không bong","Không phai màu ngoài nắng","Hợp sản phẩm đóng gói nóng"]},
+        {title:"Decal nhũ vàng/bạc", excelLoaiGiay:"Gương vàng", color:"#D9A93B", bullets:["Ánh kim sang trọng","Hợp nhãn mỹ phẩm, rượu, quà tặng","Ép nhũ thật, không phải in giả"]}
       ],
       process: [
         {title:"Chọn & ước tính giá", desc:"Chọn chất liệu, kích thước, số lượng ở trên."},
@@ -510,7 +510,7 @@
       apiStatus.textContent = 'Đang tải...';
       fetch(base + '/api/pricing').then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
         .then(function(data){
-          content.materials = (data.materials || []).map(function(m){ return {title:m.title, price:m.price, color:m.color, bullets:m.bullets || []}; });
+          content.materials = (data.materials || []).map(function(m){ return {title:m.title, excelLoaiGiay:m.excelLoaiGiay, color:m.color, bullets:m.bullets || []}; });
           content.pricing = {
             floor: data.floor,
             shapes: (data.shapes || []).map(function(s){ return {label:s.label, nhomBe:s.nhomBe}; }),
@@ -590,8 +590,16 @@
 
     /* Materials */
     var s3 = el('details', {class:'section'});
+    var EXCEL_LOAI_GIAY_LIST = [
+      'Decal giấy Oji 32x40', 'Decal giấy Oji 32x43', 'Decal giấy Oji 32x45', 'Decal giấy Oji 33x48',
+      'Decal đế nhám', 'amazon chấm xanh', 'amazon chấm đỏ', 'Decal Fasson', 'Decal Kraft',
+      'Decal nhựa', 'Decal PP', 'Decal 7 màu', 'Decal Trong', 'Decal Gương',
+      'Vỡ dẻo', 'Vỡ giòn', 'Vỡ KoanHao', 'Decal Bạc', 'Gương vàng'
+    ];
+
     s3.appendChild(el('summary', {text:'Chất liệu decal (' + content.materials.length + ')'}));
     var c3 = el('div', {class:'content'});
+    c3.appendChild(el('div', {class:'hint', text:'"Chất liệu Excel thật" quyết định giá — tra sống theo tên này trong sheet GIAYDECAL của bangtinh.xlsx mỗi lần khách tính giá. Đổi giá trong Excel là giá ở đây tự đổi theo, không cần sửa gì thêm.'}));
     content.materials.forEach(function(m, i){
       var card = el('div', {class:'item-card'});
       var top = el('div', {class:'item-top'});
@@ -600,17 +608,25 @@
       rm.addEventListener('click', function(){ content.materials.splice(i,1); renderAll(); updatePreview(); });
       top.appendChild(rm);
       card.appendChild(top);
-      card.appendChild(fieldText('Tên chất liệu', m.title, function(v){ m.title = v; }));
-      var priceRow = el('div', {class:'f-row'});
-      priceRow.appendChild(el('label', {text:'Đơn giá / cm² (đồng) và màu nhãn minh hoạ'}));
-      var pWrap = el('div', {class:'price-row'});
-      var pInput = el('input', {type:'text'}); pInput.value = m.price;
-      pInput.addEventListener('input', function(){ m.price = parseFloat(pInput.value)||0; updatePreview(); });
+      card.appendChild(fieldText('Tên hiển thị cho khách', m.title, function(v){ m.title = v; }));
+
+      var mapRow = el('div', {class:'f-row'});
+      mapRow.appendChild(el('label', {text:'Chất liệu Excel thật (quyết định giá) + màu minh hoạ'}));
+      var mapWrap = el('div', {class:'price-row'});
+      var sel = el('select');
+      EXCEL_LOAI_GIAY_LIST.forEach(function(name){
+        var o = el('option', {value: name, text: name});
+        if (m.excelLoaiGiay === name) o.setAttribute('selected', 'true');
+        sel.appendChild(o);
+      });
+      sel.value = m.excelLoaiGiay || EXCEL_LOAI_GIAY_LIST[0];
+      sel.addEventListener('change', function(){ m.excelLoaiGiay = sel.value; updatePreview(); });
       var cInput = el('input', {type:'color'}); cInput.value = m.color || '#F3EEE4';
       cInput.addEventListener('input', function(){ m.color = cInput.value; updatePreview(); });
-      pWrap.appendChild(pInput); pWrap.appendChild(cInput);
-      priceRow.appendChild(pWrap);
-      card.appendChild(priceRow);
+      mapWrap.appendChild(sel); mapWrap.appendChild(cInput);
+      mapRow.appendChild(mapWrap);
+      card.appendChild(mapRow);
+
       m.bullets.forEach(function(b, bi){
         card.appendChild(fieldText('Đặc điểm ' + (bi+1), b, function(v){ m.bullets[bi] = v; }));
       });
@@ -618,7 +634,7 @@
     });
     var addMat = el('button', {class:'add-item-btn', text:'+ Thêm chất liệu'});
     addMat.addEventListener('click', function(){
-      content.materials.push({title:'Chất liệu mới', price:1.0, color:'#EAF2FD', bullets:['Đặc điểm 1','Đặc điểm 2','Đặc điểm 3']});
+      content.materials.push({title:'Chất liệu mới', excelLoaiGiay: EXCEL_LOAI_GIAY_LIST[0], color:'#EAF2FD', bullets:['Đặc điểm 1','Đặc điểm 2','Đặc điểm 3']});
       renderAll(); updatePreview();
     });
     c3.appendChild(addMat);
