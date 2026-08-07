@@ -67,4 +67,12 @@ try {
   if (!/duplicate column/i.test(e.message)) throw e;
 }
 
+// Migration: thêm cột excel_loai_giay vào bảng materials — tên chất liệu THẬT trong
+// sheet GIAYDECAL của bangtinh.xlsx, dùng để tra giá giấy sống thay vì số cố định.
+try {
+  db.exec("ALTER TABLE materials ADD COLUMN excel_loai_giay TEXT DEFAULT 'Decal giấy Oji 32x43'");
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
 module.exports = db;
