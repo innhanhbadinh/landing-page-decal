@@ -59,4 +59,12 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 `);
 
+// Migration: thêm cột nhom_be (nhóm sheet giá bế: BETHUONG/KETP/BEKHO) vào bảng shapes
+// nếu chưa có — bọc try/catch vì SQLite không hỗ trợ "ADD COLUMN IF NOT EXISTS".
+try {
+  db.exec("ALTER TABLE shapes ADD COLUMN nhom_be TEXT DEFAULT 'BETHUONG'");
+} catch (e) {
+  if (!/duplicate column/i.test(e.message)) throw e;
+}
+
 module.exports = db;
