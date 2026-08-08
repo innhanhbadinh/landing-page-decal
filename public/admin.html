@@ -97,7 +97,7 @@
       hero: {
         eyebrow: "🏷️ In Decal / Tem nhãn",
         title: "In decal, tem nhãn",
-        titleEm: "theo đúng hình bạn cần",
+        titleEm: "Lấy ngay trong ngày, chất lượng tốt, giá thành hợp lý",
         lead: "Bế theo mọi hình dạng, đủ chất liệu từ decal giấy đến tem chống giả 7 màu. Ước tính giá ngay bên dưới, không cần chờ tư vấn.",
         image: "https://innhanhbadinh.vn/uploads/products/1/photo_20260710083500.png",
         badge: "Từ 200đ / tem"
@@ -330,7 +330,7 @@
           '<div>' +
           '<div id="estimatorFields">' +
             '<div class="field"><label>Kiểu bế</label><div class="shape-grid" id="shapeGrid"></div></div>' +
-            '<div class="field-row"><div class="field"><label>Chiều rộng (cm)</label><input type="number" id="width" value="5" min="1" step="0.5"></div><div class="field"><label>Chiều cao (cm)</label><input type="number" id="height" value="5" min="1" step="0.5"></div></div>' +
+            '<div class="field-row"><div class="field"><label id="widthLabel">Chiều rộng (cm)</label><input type="number" id="width" min="1" step="0.5" placeholder="VD: 5"></div><div class="field" id="heightField"><label>Chiều cao (cm)</label><input type="number" id="height" min="1" step="0.5" placeholder="VD: 5"></div></div>' +
             '<div class="field"><label>Chất liệu</label><div class="material-pills" id="materialPills"></div></div>' +
             '<div class="field"><label>Loại màng</label><div class="toggle-group" id="laminateGroup"></div></div>' +
             '<div class="field"><label>Thời gian</label><div class="toggle-group" id="rushGroup"></div></div>' +
@@ -388,18 +388,25 @@
     "var shapeGrid=document.getElementById('shapeGrid'),materialPills=document.getElementById('materialPills')," +
       "laminateGroup=document.getElementById('laminateGroup'),rushGroup=document.getElementById('rushGroup')," +
       "w=document.getElementById('width'),h=document.getElementById('height'),q=document.getElementById('qty')," +
+      "heightField=document.getElementById('heightField'),widthLabel=document.getElementById('widthLabel')," +
       "ul=document.getElementById('unitLine'),pl=document.getElementById('promoLine'),tp=document.getElementById('totalPrice')," +
       "qp=document.querySelectorAll('.qty-preset'),pc=document.getElementById('promoCode'),ap=document.getElementById('applyPromo'),pm=document.getElementById('promoMsg')," +
       "loadingEl=document.getElementById('estimateLoading'),errorEl=document.getElementById('estimateError'),fieldsEl=document.getElementById('estimatorFields')," +
       "appliedCode='';" +
     "function activeId(g){var el=document.querySelector('.opt-btn.active[data-group=\\\"'+g+'\\\"]');return el?parseInt(el.dataset.id,10):null;}" +
-    "function bindOpt(container,group){container.querySelectorAll('button').forEach(function(btn){btn.classList.add('opt-btn');btn.dataset.group=group;btn.addEventListener('click',function(){container.querySelectorAll('.opt-btn').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');updateEstimate();});});}" +
+    "function activeShapeLabel(){var el=document.querySelector('.opt-btn.active[data-group=\\\"shape\\\"]');return el?el.textContent.trim():'';}" +
+    "function isSingleDimShape(label){return label==='Hình tròn'||label==='Hình Vuông';}" +
+    "function updateDimsMode(){var label=activeShapeLabel();if(isSingleDimShape(label)){heightField.style.display='none';widthLabel.textContent=(label==='Hình tròn')?'Đường kính (cm)':'Cạnh (cm)';h.value=w.value;}else{heightField.style.display='';widthLabel.textContent='Chiều rộng (cm)';}}" +
+    "function bindOpt(container,group){container.querySelectorAll('button').forEach(function(btn){btn.classList.add('opt-btn');btn.dataset.group=group;btn.addEventListener('click',function(){container.querySelectorAll('.opt-btn').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');if(group==='shape')updateDimsMode();updateEstimate();});});}" +
     "function renderShapes(list){shapeGrid.innerHTML=list.map(function(s,i){var icon=ICONS[s.label]||FALLBACK;return '<button type=\\\"button\\\" class=\\\"shape-btn'+(i===0?' active':'')+'\\\" data-id=\\\"'+s.id+'\\\">'+icon+esc(s.label)+'</button>';}).join('');bindOpt(shapeGrid,'shape');}" +
     "function renderMaterials(list){materialPills.innerHTML=list.map(function(m,i){return '<button type=\\\"button\\\" class=\\\"material-pill'+(i===0?' active':'')+'\\\" data-id=\\\"'+m.id+'\\\">'+esc(m.title)+'</button>';}).join('');bindOpt(materialPills,'material');}" +
     "function renderToggle(container,group,list){container.innerHTML=list.map(function(o,i){return '<button type=\\\"button\\\" class=\\\"toggle-btn'+(i===0?' active':'')+'\\\" data-id=\\\"'+o.id+'\\\">'+esc(o.label)+'</button>';}).join('');bindOpt(container,group);}" +
     "var estTimer;" +
     "function updateEstimate(){clearTimeout(estTimer);estTimer=setTimeout(function(){" +
-      "var payload={shapeId:activeId('shape'),materialId:activeId('material'),laminateId:activeId('laminate'),rushId:activeId('rush'),width:w.value,height:h.value,qty:q.value,promoCode:appliedCode||undefined};" +
+      "var single=isSingleDimShape(activeShapeLabel());" +
+      "var wv=parseFloat(w.value),hv=single?wv:parseFloat(h.value);" +
+      "if(!wv||wv<=0||!hv||hv<=0){ul.textContent='—';pl.textContent='—';tp.textContent='Nhập kích thước để xem giá';return;}" +
+      "var payload={shapeId:activeId('shape'),materialId:activeId('material'),laminateId:activeId('laminate'),rushId:activeId('rush'),width:wv,height:hv,qty:q.value,promoCode:appliedCode||undefined};" +
       "fetch(API_BASE+'/api/pricing/estimate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})" +
       ".then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})" +
       ".then(function(res){" +
@@ -409,12 +416,14 @@
         "if(appliedCode){pm.textContent=res.codeApplied?'Áp dụng mã thành công.':'Mã không hợp lệ hoặc đã hết hạn.';pm.className='promo-msg '+(res.codeApplied?'ok':'err');}else{pm.textContent='';}" +
       "}).catch(function(){tp.textContent='Không kết nối được';ul.textContent='—';pl.textContent='—';});" +
     "},250);}" +
+    "w.addEventListener('input',function(){if(isSingleDimShape(activeShapeLabel()))h.value=w.value;});" +
     "[w,h,q].forEach(function(el){el.addEventListener('input',updateEstimate);});" +
     "qp.forEach(function(p){p.addEventListener('click',function(){q.value=p.dataset.qty;qp.forEach(function(x){x.classList.remove('active');});p.classList.add('active');updateEstimate();});});" +
     "ap.addEventListener('click',function(){appliedCode=pc.value.trim();updateEstimate();});" +
     "var gm=document.getElementById('galleryMain');document.querySelectorAll('.gallery-thumbs img').forEach(function(t){t.addEventListener('click',function(){document.querySelectorAll('.gallery-thumbs img').forEach(function(x){x.classList.remove('active');});t.classList.add('active');gm.src=t.dataset.full;});});" +
     "fetch(API_BASE+'/api/pricing').then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(function(cfg){" +
     "renderShapes(cfg.shapes);renderMaterials(cfg.materials);renderToggle(laminateGroup,'laminate',cfg.laminate);renderToggle(rushGroup,'rush',cfg.rush);" +
+    "updateDimsMode();" +
     "loadingEl.style.display='none';fieldsEl.style.opacity='1';updateEstimate();" +
     "}).catch(function(){loadingEl.style.display='none';errorEl.style.display='block';fieldsEl.style.opacity='.3';});" +
   "})();";
